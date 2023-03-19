@@ -29,13 +29,12 @@ const verifyCustomer = ({ _id, email }, res) => {
   const currentUrl = 'http://localhost:8080/userVerification';
   //unique string;
   const uniqueString = uuidv4() + _id;
-
   //mail options;
   const mailOptions = {
     from: process.env.AUTH_EMAIL,
     to: email,
     subject: 'Verify your email',
-    html: `<p>Please verify your email</p>`,
+    html: `<p>Please verify your email</p> <a href=${currentUrl} + user/verify/ + _id  + / uniqueString}>here</a>`,
   };
 
   //hash the unique string;
@@ -139,6 +138,54 @@ const AppProduce = (req, res, next) => {
       console.log(err);
     });
 };
+
+//reset password;
+router.post('/resetPassword', (req, res) => {
+  let { userId, resetString, newPassword } = req.body;
+  PasswordReset.find({ userId })
+    .then((result) => {
+      if (result.length > 0) {
+        //password reset record exist;
+        //check if password reset record expired or not;
+        const { expiredAt } = result[0];
+        if (expiredAt < Date.now()) {
+          // it is expired;
+          PasswordRest.deleteOne({ userId })
+            .then(() => {
+              //Reset password deleted successfully;
+              res.json({
+                status: 'FAILED',
+                message: 'password reset link has expired',
+              });
+            })
+            .catch(() => {});
+        }
+      } else {
+        //valid reset string exist so we validate the rest string;
+        //first compare the hashed string;
+        bcrypt
+          .compare(resetString, hashedString)
+          .then((result) => {
+            //password matches hash password again;
+            const hashed = 10;
+            const hashedPassword = bcrypt.hash(newPassword, hashed);
+            User.updateOne({ _id: userId }, { password: hashedPassword })
+              .then(() => {
+                //delte password reset modul;
+                PasswordReset.deleteOne({ userId });
+              })
+              .catch(() => {});
+          })
+          .catch(() => {
+            res.json({
+              status: 'FAILED',
+              message: 'invalid password reset details  passed',
+            });
+          });
+      }
+    })
+    .catch();
+});
 
 // const [seviceList, setServceList] = useState([{ service: '' }]);
 // {serviceList.length-1===index && show the add button}
