@@ -132,7 +132,8 @@ const AppProduce = (req, res, next) => {
     description: description,
   })
     .then((result) => {
-      verifyCustomer(result, res);
+      // verifyCustomer(result, res);
+      sendOTPVerificationEmail(result, res);
     })
     .catch((err) => {
       console.log(err);
@@ -148,6 +149,7 @@ router.post('/resetPassword', (req, res) => {
         //password reset record exist;
         //check if password reset record expired or not;
         const { expiredAt } = result[0];
+        const hashedString = result[0].uniqueString();
         if (expiredAt < Date.now()) {
           // it is expired;
           PasswordRest.deleteOne({ userId })
@@ -171,7 +173,7 @@ router.post('/resetPassword', (req, res) => {
             const hashedPassword = bcrypt.hash(newPassword, hashed);
             User.updateOne({ _id: userId }, { password: hashedPassword })
               .then(() => {
-                //delte password reset modul;
+                //delte password reset module
                 PasswordReset.deleteOne({ userId });
               })
               .catch(() => {});
@@ -185,6 +187,82 @@ router.post('/resetPassword', (req, res) => {
       }
     })
     .catch();
+});
+
+//otp verification email;
+const sendOTPVerificationEmail = async ({ email, _id }, res) => {
+  try {
+    const otp = Math.floor(1000 + math.random() * 9000);
+    //mail options;
+    const mailOptions = {
+      from: process.env.AUTH_EMAIL,
+      to: email,
+      subject: 'verify email',
+      html: `<p>Enter ${otp} to verify your email address</p>`,
+    };
+
+    //hash the opt;
+    const saltRounds = 10;
+    const hashedOTP = bcrypt.hash(otp, saltRounds);
+    const newOtpVerification = await new UserOTPVerification({
+      userId: _id,
+      opt: hashedOTP,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 3600000,
+    });
+    //save otp;
+    await newOtpVerification.save();
+    transporter.sendMail(mailOptions).then(() => {
+      res.status({
+        status: 'PENDING',
+        message: 'otp send sucessfully',
+        data: {
+          userId: _id,
+          email,
+        },
+      });
+    });
+  } catch (error) {
+    res.json({
+      status: 'FAILED',
+    });
+  }
+};
+
+//verify otp email;
+router.post('/verifyotp', async (req, res) => {
+  try {
+    let { userId, otp } = req.body;
+    if ((!userId, otp)) {
+      throw Error('empty userid and otp is not allowed');
+      await UserOTPVerification.find({ userId }).then((result) => {
+        if (result.length > 0) {
+          //verification exists;
+          //now check if it expires or not;
+          const { expiredAt } = result[0].expiredAt;
+          const hashedOtp = result[0].otp;
+          if (expiredAt < Date.now()) {
+            //it means it is expired;
+            UserOTPVefication.deleteOne({ userId }).then(() => {
+              throw new Error('Code has expired');
+            });
+          } else {
+            const validOTP = bcrypt.compare(otp, hashedOtp);
+            if (!validOTP) {
+              throw new Error('invalid otp');
+            } else {
+              User.updateOne({ _id: userId }, { verified: true });
+              OtpVerification.deleteOne({ userId });
+              res.json({
+                status: 'SUCCESS',
+                message: 'User email verified successfully',
+              });
+            }
+          }
+        }
+      });
+    }
+  } catch (error) {}
 });
 
 // const [seviceList, setServceList] = useState([{ service: '' }]);
