@@ -233,9 +233,12 @@ const sendOTPVerificationEmail = async ({ email, _id }, res) => {
 router.post('/verifyotp', async (req, res) => {
   try {
     let { userId, otp } = req.body;
-    if ((!userId, otp)) {
+    if (!userId && !otp) {
       throw Error('empty userid and otp is not allowed');
-      await UserOTPVerification.find({ userId }).then((result) => {
+    
+      
+    }else{
+        await UserOTPVerification.find({ userId }).then((result) => {
         if (result.length > 0) {
           //verification exists;
           //now check if it expires or not;
@@ -260,7 +263,21 @@ router.post('/verifyotp', async (req, res) => {
             }
           }
         }
-      });
+      }
+    }
+  } catch (error) {}
+});
+
+//resent verification;
+router.post('/resendverification', async (req, res) => {
+  try {
+    let { userId, email } = req.body;
+    if (!userId || !email) {
+      throw new Error('cannot send empty');
+    } else {
+      //delete existing;
+      await OTPVerification.deleteOne({ userId });
+      sendOTPVerificationEmail({ _id, email }, res);
     }
   } catch (error) {}
 });
