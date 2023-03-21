@@ -235,8 +235,6 @@ router.post('/verifyotp', async (req, res) => {
     let { userId, otp } = req.body;
     if (!userId && !otp) {
       throw Error('empty userid and otp is not allowed');
-    
-      
     }else{
         await UserOTPVerification.find({ userId }).then((result) => {
         if (result.length > 0) {
