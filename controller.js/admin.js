@@ -15,14 +15,6 @@ let transporter = nodemailer.createTransport({
   },
 });
 
-//testing success;
-transporter.verify((error, success) => {
-  if (error) {
-    console.log(error);
-  } else {
-    console.log(success);
-  }
-});
 
 const verifyCustomer = ({ _id, email }, res) => {
   //html link;
@@ -68,6 +60,7 @@ const verifyCustomer = ({ _id, email }, res) => {
       });
   });
 };
+
 router.get('/verify/:userId/:uniqueString', (req, res) => {
   let { userId, uniqueString } = req.params;
   userVerication.find({ userId }).then((result) => {
@@ -139,7 +132,6 @@ const AppProduce = (req, res, next) => {
       console.log(err);
     });
 };
-
 //reset password;
 router.post('/resetPassword', (req, res) => {
   let { userId, resetString, newPassword } = req.body;
@@ -188,7 +180,6 @@ router.post('/resetPassword', (req, res) => {
     })
     .catch();
 });
-
 //otp verification email;
 const sendOTPVerificationEmail = async ({ email, _id }, res) => {
   try {
@@ -228,7 +219,6 @@ const sendOTPVerificationEmail = async ({ email, _id }, res) => {
     });
   }
 };
-
 //verify otp email;
 router.post('/verifyotp', async (req, res) => {
   try {
@@ -280,6 +270,17 @@ router.post('/resendverification', async (req, res) => {
   } catch (error) {}
 });
 
+let ITEM_PER_PAGE=2;
+//PAGINATION:
+const page=Number(req.query.page) || 1;
+const limit=Number(req.query.limit) || 3;
+const skip=(page-1) * limit;
+Product.find().skip(skip).limit(limit)
+
+export const getIndex=(req, res) => {
+  const page=req.query.page;
+  Product.find().skip((page -1 ) * PAGE_PER_PAGE).limit(limit)
+}
 // const [seviceList, setServceList] = useState([{ service: '' }]);
 // {serviceList.length-1===index && show the add button}
 // {serviceList.length > 1 && show the remove button}
