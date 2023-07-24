@@ -265,7 +265,7 @@ router.post('/resendverification', async (req, res) => {
     } else {
       //delete existing;
       await OTPVerification.deleteOne({ userId });
-      sendOTPVerificationEmail({ _id, email }, res);
+      sendOTPVerificationEmail({ userId, email }, res);
     }
   } catch (error) {}
 });
